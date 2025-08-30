@@ -1,0 +1,7 @@
+---
+name: Install iptables and iptables-persistent
+ansible.builtin.apt:
+  name:
+    - iptables
+    - iptables-persistent
+  state: present

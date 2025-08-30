@@ -1,0 +1,45 @@
+---
+- name: Run RKE2 installer script (agent)
+  ansible.builtin.shell:
+    cmd: "curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE='agent' sh -"
+    creates: /usr/local/bin/rke2
+
+- name: Create rke2 config dir
+  ansible.builtin.file:
+    path: /etc/rancher/rke2
+    state: directory
+    mode: '0755'
+  when:
+    - not ansible_check_mode
+
+- name: Set token fact for worker
+  ansible.builtin.set_fact:
+    token: "{{ hostvars[groups['rke2_servers'][0]].rke2_token | default(None) }}"
+  when: not ansible_check_mode
+
+- name: Set server_ip fact for worker
+  ansible.builtin.set_fact:
+    server_ip: "{{ hostvars[groups['rke2_servers'] | first].ansible_host }}"
+  when: not ansible_check_mode
+
+- name: Create config.yaml for agents
+  ansible.builtin.template:
+    src: template/config.yaml.j2
+    dest: /etc/rancher/rke2/config.yaml
+    mode: '0644'
+  when:
+    - not ansible_check_mode
+    - token is not none
+
+- name: Ensure rke2-agent service is enabled and started
+  ansible.builtin.systemd:
+    name: rke2-agent
+    enabled: yes
+    state: started
+  when: not ansible_check_mode
+
+- name: Start rke2-agent service
+  ansible.builtin.systemd:
+    name: rke2-agent
+    state: started
+  when: not ansible_check_mode

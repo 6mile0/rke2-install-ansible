@@ -1,0 +1,37 @@
+---
+- name: Install iptables and iptables-persistent
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+    state: present
+
+- name: Run RKE2 installer script (server)
+  ansible.builtin.shell:
+    cmd: "curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE='server' sh -"
+    creates: /usr/local/bin/rke2
+
+- name: Ensure rke2-server service is enabled and started
+  ansible.builtin.systemd:
+    name: rke2-server
+    enabled: yes
+    state: started
+  when: not ansible_check_mode
+
+- name: Wait for and read the node token
+  when: not ansible_check_mode
+  block:
+    - name: Wait for the node token to be created
+      ansible.builtin.wait_for:
+        path: /var/lib/rancher/rke2/server/node-token
+        timeout: 120
+
+    - name: Read the node token
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/rke2/server/node-token
+      register: rke2_token_b64
+
+    - name: Store the node token for agents to use
+      ansible.builtin.set_fact:
+        rke2_token: "{{ rke2_token_b64.content | b64decode | trim }}"
+        cacheable: yes

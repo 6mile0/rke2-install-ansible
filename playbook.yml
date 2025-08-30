@@ -1,0 +1,34 @@
+- name: Install iptables and iptables-persistent
+  hosts: all
+  become: true
+  become_user: root
+
+- name: Install RKE2 on Server nodes
+  hosts: rke2_servers
+  become: true
+  become_user: root
+  roles:
+    - rke2_server
+
+- name: Install RKE2 on Worker nodes
+  hosts: rke2_workers
+  become: true
+  become_user: root
+  roles:
+    - rke2_worker
+
+- name: Post-Installation Steps
+  hosts: rke2_servers[0]
+  become: true
+  tasks:
+    - name: Copy kubeconfig to local machine
+      ansible.builtin.fetch:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: "{{ playbook_dir }}/rke2.yaml"
+        flat: yes
+    
+    - name: Backup the critical cluster join token
+      ansible.builtin.fetch:
+        src: /var/lib/rancher/rke2/server/token
+        dest: "{{ playbook_dir }}/rke2_cluster_token.txt"
+        flat: yes

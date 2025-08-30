@@ -1,0 +1,9 @@
+[rke2_servers]
+ice-master ansible_host=192.168.10.163
+
+[rke2_workers]
+sui-worker ansible_host=192.168.10.164
+miu-worker ansible_host=192.168.10.165
+
+[all:vars]
+ansible_user=<YOUR_USERNAME>
